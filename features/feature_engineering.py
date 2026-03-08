@@ -5,14 +5,11 @@ import ta
 
 def create_features(df):
 
-    df = df.copy()
-
-    # ensure Price column exists
-    if "Price" not in df.columns:
-        if "Adj Close" in df.columns:
-            df["Price"] = df["Adj Close"]
-        else:
-            df["Price"] = df["Close"]
+     #Always create Price column from stock data
+    if "Adj Close" in df.columns:
+        df["Price"] = df["Adj Close"]
+    else:
+        df["Price"] = df["Close"]
 
     df["Return"] = df["Price"].pct_change()
 
