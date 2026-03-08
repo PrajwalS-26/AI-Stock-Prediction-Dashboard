@@ -25,6 +25,7 @@ def load_stock_data(ticker, period="10y"):
 
     df.dropna(inplace=True)
 
-    return dfhead())
+    return df
+
 
 
