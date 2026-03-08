@@ -20,7 +20,7 @@ def create_features(df):
     df["Price"] = pd.to_numeric(df["Price"], errors="coerce")
 
     # Remove NaNs before calculating return
-    df.dropna(subset=["Price"], inplace=True)
+#df.dropna(subset=["Price"], inplace=True)
 
     # Check again
     if df["Price"].empty:
@@ -82,3 +82,4 @@ def create_features(df):
     df.dropna(inplace=True)
 
     return df
+
