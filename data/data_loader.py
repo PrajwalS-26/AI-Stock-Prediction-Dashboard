@@ -11,28 +11,20 @@ def load_stock_data(ticker, period="10y"):
         threads=False
     )
 
-    if df.empty:
-        raise ValueError("No data returned from yfinance")
-        
+    if df is None or df.empty:
+        return pd.DataFrame()
+
     df.reset_index(inplace=True)
 
-    # Check if Adj Close exists
     if "Adj Close" in df.columns:
         df["Price"] = df["Adj Close"]
     else:
         df["Price"] = df["Close"]
 
-    # Keep useful columns
     df = df[["Date", "Open", "High", "Low", "Close", "Volume", "Price"]]
+
     df.dropna(inplace=True)
 
-    return df
+    return dfhead())
 
-
-if __name__ == "__main__":
-
-    data = load_stock_data("AAPL")
-
-
-    print(data.head())
 
