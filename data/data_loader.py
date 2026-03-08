@@ -1,56 +1,36 @@
 import yfinance as yf
 import pandas as pd
-import time
-import requests
+
 
 def load_stock_data(ticker, period="10y"):
-    ticker = ticker.upper()
-    df = pd.DataFrame()
 
-    # 1. FIX: Use a session to bypass Yahoo's bot detection on Streamlit
-    session = requests.Session()
-    session.headers.update({
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    })
-
-    for _ in range(5):
-        try:
-            df = yf.download(
-                ticker,
-                period=period,
-                session=session,  # Critical for Streamlit Cloud
-                progress=False,
-                threads=False,
-                auto_adjust=True
-            )
-
-            if not df.empty:
-                break
-
-        except Exception:
-            time.sleep(2)
+    stock = yf.Ticker(ticker)
+    df = stock.history(period=period)
 
     if df.empty:
-        return pd.DataFrame()
-
-    # 2. FIX: Handle the MultiIndex columns (The "No Data Found" cause)
-    # This flattens ('Close', 'AAPL') back to just 'Close'
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
-
+        raise ValueError("No data returned from yfinance")
+    
     df.reset_index(inplace=True)
 
-    # Ensure Close exists after flattening
-    if "Close" not in df.columns:
-        raise ValueError(f"No Close price found for {ticker}")
+    # Check if Adj Close exists
+    if "Adj Close" in df.columns:
+        df["Price"] = df["Adj Close"]
+    else:
+        df["Price"] = df["Close"]
 
-    # Create Price column (Your original logic)
-    df["Price"] = df["Close"]
-
-    # Keep needed columns
-    df = df[["Date","Open","High","Low","Close","Volume","Price"]]
+    # Keep useful columns
+    df = df[["Date", "Open", "High", "Low", "Close", "Volume", "Price"]]
+    df.dropna(inplace=True)
 
     return df
+
+
+if __name__ == "__main__":
+
+    data = load_stock_data("AAPL")
+
+    print(data.head())
+
 
 
 
