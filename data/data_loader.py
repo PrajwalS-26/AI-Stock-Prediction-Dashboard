@@ -4,11 +4,11 @@ import pandas as pd
 
 def load_stock_data(ticker, period="10y"):
 
-    stock = yf.Ticker(ticker)
-    df = stock.history(period=period)
+    df = yf.download(ticker, period=period)
 
     if df.empty:
         raise ValueError("No data returned from yfinance")
+        
     df.reset_index(inplace=True)
 
     # Check if Adj Close exists
@@ -27,5 +27,6 @@ def load_stock_data(ticker, period="10y"):
 if __name__ == "__main__":
 
     data = load_stock_data("AAPL")
+
 
     print(data.head())
