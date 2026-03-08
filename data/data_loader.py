@@ -4,7 +4,12 @@ import pandas as pd
 
 def load_stock_data(ticker, period="10y"):
 
-    df = yf.download(ticker, period=period)
+    df = yf.download(
+        ticker,
+        period=period,
+        progress=False,
+        threads=False
+    )
 
     if df.empty:
         raise ValueError("No data returned from yfinance")
@@ -30,3 +35,4 @@ if __name__ == "__main__":
 
 
     print(data.head())
+
