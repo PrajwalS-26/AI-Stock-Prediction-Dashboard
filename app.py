@@ -8,7 +8,7 @@ from sklearn.preprocessing import MinMaxScaler
 from xgboost import XGBRegressor
 
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.layers import LSTM, Dense
 
 from data.data_loader import load_stock_data
 from features.feature_engineering import create_features
@@ -16,14 +16,13 @@ from features.feature_engineering import create_features
 st.set_page_config(layout="wide")
 st.title("AI Stock Prediction Dashboard")
 
-ticker = st.text_input("Enter Stock Ticker", "TCS.NS").upper()
+ticker = st.text_input("Enter Stock Ticker", "TCS.NS")
 
 if st.button("Run Prediction"):
 
     # =========================
     # LOAD DATA
     # =========================
-
     df = load_stock_data(ticker)
 
     if df.empty:
@@ -32,17 +31,12 @@ if st.button("Run Prediction"):
 
     df_features = create_features(df)
 
-    if len(df_features) < 50:
-        st.error("Not enough data after feature engineering.")
-        st.stop()
-
     st.subheader("Raw Stock Data (Last 20 rows)")
     st.dataframe(df.tail(20))
 
     # =========================
     # MOVING AVERAGES
     # =========================
-
     df["MA10"] = df["Price"].rolling(10).mean()
     df["MA20"] = df["Price"].rolling(20).mean()
 
@@ -55,7 +49,7 @@ if st.button("Run Prediction"):
     st.plotly_chart(fig_ma, use_container_width=True)
 
     # =========================
-    # XGBOOST MODEL
+    # XGBOOST MODEL (TRAIN EACH TIME)
     # =========================
 
     features = [
@@ -69,18 +63,11 @@ if st.button("Run Prediction"):
 
     split = int(len(X) * 0.8)
 
-    if split >= len(X):
-        split = len(X) - 1
-
     X_train = X[:split]
     y_train = y[:split]
 
     X_test = X[split:]
     y_test = y[split:]
-
-    if len(X_test) == 0:
-        st.error("Not enough data for testing.")
-        st.stop()
 
     xgb_model = XGBRegressor(
         n_estimators=200,
@@ -93,36 +80,31 @@ if st.button("Run Prediction"):
     preds = xgb_model.predict(X_test)
 
     actual_prices = df_features["Price"].iloc[split:]
-
-    predicted_prices = actual_prices.values * (1 + preds)
+    predicted_prices = actual_prices * (1 + preds)
 
     st.subheader("XGBoost Model Evaluation")
 
     xgb_table = pd.DataFrame({
         "Actual Price": actual_prices.tail(15).values,
-        "Predicted Price": predicted_prices[-15:],
+        "Predicted Price": predicted_prices.tail(15).values,
         "Actual Return": y_test.tail(15).values,
         "Predicted Return": preds[-15:]
     })
 
     st.dataframe(xgb_table)
 
+    fig_ret = go.Figure()
+    fig_ret.add_trace(go.Scatter(y=y_test, name="Actual Return"))
+    fig_ret.add_trace(go.Scatter(y=preds, name="Predicted Return"))
+    st.plotly_chart(fig_ret, use_container_width=True)
+
     fig_price = go.Figure()
-
-    fig_price.add_trace(go.Scatter(
-        y=actual_prices,
-        name="Actual Price"
-    ))
-
-    fig_price.add_trace(go.Scatter(
-        y=predicted_prices,
-        name="Predicted Price"
-    ))
-
+    fig_price.add_trace(go.Scatter(y=actual_prices, name="Actual Price"))
+    fig_price.add_trace(go.Scatter(y=predicted_prices, name="Predicted Price"))
     st.plotly_chart(fig_price, use_container_width=True)
 
     # =========================
-    # LSTM MODEL
+    # LSTM MODEL (TRAIN EACH TIME)
     # =========================
 
     st.subheader("LSTM Model Evaluation")
@@ -154,6 +136,8 @@ if st.button("Run Prediction"):
 
     lstm_model = Sequential()
 
+    from tensorflow.keras.layers import Dropout
+
     lstm_model.add(LSTM(50, return_sequences=True, input_shape=(window,1)))
     lstm_model.add(Dropout(0.2))
     lstm_model.add(LSTM(50))
@@ -161,8 +145,8 @@ if st.button("Run Prediction"):
     lstm_model.add(Dense(1))
 
     lstm_model.compile(
-        optimizer="adam",
-        loss="mean_squared_error"
+        optimizer='adam',
+        loss='mean_squared_error'
     )
 
     lstm_model.fit(
@@ -186,21 +170,13 @@ if st.button("Run Prediction"):
     st.dataframe(lstm_table)
 
     fig_lstm = go.Figure()
-
-    fig_lstm.add_trace(go.Scatter(
-        y=actual_lstm.flatten(),
-        name="Actual Price"
-    ))
-
-    fig_lstm.add_trace(go.Scatter(
-        y=predicted_lstm.flatten(),
-        name="Predicted Price"
-    ))
+    fig_lstm.add_trace(go.Scatter(y=actual_lstm.flatten(), name="Actual Price"))
+    fig_lstm.add_trace(go.Scatter(y=predicted_lstm.flatten(), name="Predicted Price"))
 
     st.plotly_chart(fig_lstm, use_container_width=True)
 
     # =========================
-    # AI PREDICTION
+    # AI PREDICTION FOR TOMORROW
     # =========================
 
     current_price = df.iloc[-1]["Price"]
@@ -271,6 +247,22 @@ if st.button("Run Prediction"):
     col2.metric("R²", f"{lstm_r2:.4f}")
 
     # =========================
+    # METRIC GRAPH
+    # =========================
+
+    metrics_df = pd.DataFrame({
+        "Metric":["RMSE","MAE"],
+        "XGBoost":[xgb_rmse,xgb_mae],
+        "LSTM":[lstm_rmse,lstm_mae]
+    })
+
+    fig_metrics = go.Figure()
+    fig_metrics.add_trace(go.Bar(x=metrics_df["Metric"],y=metrics_df["XGBoost"],name="XGBoost"))
+    fig_metrics.add_trace(go.Bar(x=metrics_df["Metric"],y=metrics_df["LSTM"],name="LSTM"))
+
+    st.plotly_chart(fig_metrics,use_container_width=True)
+
+    # =========================
     # BACKTESTING
     # =========================
 
@@ -306,5 +298,7 @@ if st.button("Run Prediction"):
     st.metric("Initial Capital", "$10000")
     st.metric("Final Portfolio Value", f"${final_value:.2f}")
     st.metric("Profit/Loss", f"${profit:.2f}")
+
+
 
 
