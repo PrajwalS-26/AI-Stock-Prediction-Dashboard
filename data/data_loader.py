@@ -5,13 +5,14 @@ import time
 
 def load_stock_data(ticker, period="10y"):
 
+    ticker = ticker.upper()
+
     df = pd.DataFrame()
 
-    # Try downloading up to 3 times
-    for _ in range(3):
+    for _ in range(5):
         try:
             df = yf.download(
-                ticker.upper(),
+                ticker,
                 period=period,
                 progress=False,
                 threads=False,
@@ -29,14 +30,18 @@ def load_stock_data(ticker, period="10y"):
 
     df.reset_index(inplace=True)
 
-    # Standard price column
+    # Ensure Close exists
+    if "Close" not in df.columns:
+        raise ValueError("Yahoo returned unexpected data format")
+
+    # Create Price column
     df["Price"] = df["Close"]
 
-    df = df[["Date", "Open", "High", "Low", "Close", "Volume", "Price"]]
-
-    df.dropna(inplace=True)
+    # Keep needed columns
+    df = df[["Date","Open","High","Low","Close","Volume","Price"]]
 
     return df
+
 
 
 
