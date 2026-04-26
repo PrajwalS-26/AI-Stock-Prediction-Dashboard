@@ -207,11 +207,11 @@ if st.button("Run Prediction"):
 
     col1, col2, col3 = st.columns(3)
 
-    col1.metric("Current Price", f"${current_price:.2f}")
-    col2.metric("XGBoost Price", f"${xgb_price:.2f}")
-    col3.metric("LSTM Price", f"${lstm_price:.2f}")
+    col1.metric("Current Price", f"₹{current_price:.2f}")
+    col2.metric("XGBoost Price", f"₹{xgb_price:.2f}")
+    col3.metric("LSTM Price", f"₹{lstm_price:.2f}")
 
-    st.metric("Final AI Price", f"${final_price:.2f}")
+    st.metric("Final AI Price", f"₹{final_price:.2f}")
 
     if signal == "BUY":
         st.success("Signal: BUY")
@@ -295,9 +295,9 @@ if st.button("Run Prediction"):
 
     profit = final_value - 10000
 
-    st.metric("Initial Capital", "$10000")
-    st.metric("Final Portfolio Value", f"${final_value:.2f}")
-    st.metric("Profit/Loss", f"${profit:.2f}")
+    st.metric("Initial Capital", "₹10000")
+    st.metric("Final Portfolio Value", f"₹{final_value:.2f}")
+    st.metric("Profit/Loss", f"₹{profit:.2f}")
 
 
 
